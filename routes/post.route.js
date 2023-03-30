@@ -1,43 +1,30 @@
-const mongoose = require('mongoose');
 const router = require('express').Router();
 const Post = require('../models/post.model');
-const multer = require('multer');
-const {GridFsStorage} = require('multer-gridfs-storage');
+const cloudinary = require('../config/cloudinary');
+const multer = require('../config/multer');
 
-const Storage = new GridFsStorage({
-    url : process.env.DB_URL,
-    file : (req , file) =>{
-        return {
-            bucketName : 'photo_db',
-            filename : `${Date.now()}_${file.originalname}`
-        }
-    }
-})
-
-const upload = multer({
-    storage : Storage
-})
-
-router.get('/posts', async(req , res) =>{
-    try{
-        const posts = await Post.find();
-        res.status(200).send(posts);
+router.post('/post', multer.single('PostImage'), async (req, res) => {
+    try {
+        let result = await cloudinary.uploader.upload(req.file.path);
+        let post = new Post({
+            PostImage: result.secure_url,
+            cloudinary_id: result.public_id,
+            author: req.body.author,
+            location: req.body.location,
+            description: req.body.description
+        })
+        let val = await post.save()
+        res.send({ status : "Success", value : val});
     }catch(err){
-        res.status(500).send(err.message);
+        res.status(500).send(err.message)
     }
 })
-router.post('/post' ,upload.single('PostImage') ,  async(req, res)=>{
+router.get('/posts' , async(req , res) =>{
     try{
-        let newPost = await new Post({
-            ...req.body,
-            PostImage : `images/${req.file.filename}`
-        });
-        const result = await newPost.save();
-        res.status(200).send(result);
+        let posts = await Post.find();
+        res.send(posts)
     }catch(err){
-        res.status(500).send(err.message);
+        res.send(err.message);
     }
 })
-
-
 module.exports = router;
