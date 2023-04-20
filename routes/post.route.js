@@ -14,7 +14,7 @@ router.post('/post', multer.single('PostImage'), async (req, res) => {
             description: req.body.description
         })
         let val = await post.save()
-        res.send({ status : "Success", value : val});
+        res.send({ status : "Success", value : post});
     }catch(err){
         res.status(500).send(err.message)
     }
